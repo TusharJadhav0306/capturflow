@@ -10,7 +10,7 @@ Cross-browser screen + webcam recording for the web — Document Picture-in-Pict
 - **Composite webcam-over-screen** — a canvas pipeline draws the screen full-frame and overlays a mirrored, rounded webcam thumbnail (configurable corner/size). Falls back to recording the raw screen stream when compositing is off.
 - **Cross-browser Picture-in-Picture strategies**, auto-selected per browser/OS:
   - `document-pip` — native Document PiP window (Chrome/Edge/Opera desktop), opened *after* the screen picker.
-  - `popup` — `window.open()` popup, opened *synchronously before* the picker (required on Mac Firefox/Opera/Safari, where the permission dialog consumes the user activation a popup needs).
+  - `popup` — `window.open()` popup, opened *synchronously before* the picker (Mac Firefox/Opera). **Not used on Safari** — opening a window there moves focus off the page and WebKit drops the user gesture, breaking `getDisplayMedia`, so Safari uses `floating`.
   - `floating` — in-page draggable overlay (universal fallback; used wherever Document PiP is unavailable, e.g. Firefox/Safari desktop).
 - **Pause / resume** recording, plus live mic and camera toggles. Closing the overlay window or hitting the browser's native "Stop sharing" bar stops the recording cleanly.
 - **`hideBrowserChrome` crop** — crops the browser's own UI (tab strip, address bar, bookmarks) off the top of a `window` capture while still recording every tab the user switches to. Auto-estimates the toolbar height from window metrics, or takes an explicit pixel value.
@@ -189,13 +189,13 @@ PiP strategy is chosen automatically by `CapturFlow.detect()`. See [TESTING.md](
 | Chrome / Edge / Opera — macOS | Yes | `document-pip` | WebM |
 | Firefox — Windows, Linux | Yes (window/monitor) | `floating` (no Document PiP) | WebM |
 | Firefox — macOS | Yes | `popup` (opened before the picker) | WebM |
-| Safari — macOS | Yes — **screen-only** (no per-window/tab share) | `popup` | **MP4** |
+| Safari — macOS | Yes — **screen-only** (no per-window/tab share) | `floating` | **MP4** |
 | Mobile — iOS Safari, Android Chrome | **No** — `getDisplayMedia` unsupported | n/a — `start()` emits `SCREEN_CAPTURE_UNSUPPORTED` | — |
 
 **Notes**
 - **Safari** records MP4 (H.264/AAC), never WebM; the compositor still works but per-window chrome cropping does not apply (screen-only). `MediaRecorder` construction falls back across types if a codec is rejected.
 - **Mobile** browsers have no screen-capture API; `start()` reports `SCREEN_CAPTURE_UNSUPPORTED` instead of failing deep in the pipeline. Detect ahead of time with `CapturFlow.detect().screenCaptureSupported`.
-- **Document PiP** is Chromium-desktop-only as of 2026. Firefox/Safari use the popup or floating overlay; the floating overlay lives in the page, so it is hidden while another tab is focused.
+- **Document PiP** is Chromium-desktop-only as of 2026. Mac Firefox/Opera use a popup overlay; **Safari uses the in-page floating overlay** (a popup would steal focus and break `getDisplayMedia` on WebKit). The floating overlay lives in the page, so it is hidden while another tab is focused.
 
 ### The `hideBrowserChrome` trade-off
 

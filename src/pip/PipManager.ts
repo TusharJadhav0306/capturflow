@@ -18,10 +18,11 @@ export interface PipCallbacks {
  *    click grants fresh user activation; calling before puts the PiP window
  *    in the share picker list).
  *
- * 2. popup  — Mac Firefox/Opera/Safari
- *    Uses window.open() which MUST be called synchronously before the async
- *    getDisplayMedia call (transient user activation is consumed by the
- *    async permission dialog on Mac).
+ * 2. popup  — Mac Firefox/Opera (NOT Safari)
+ *    Uses window.open() called synchronously before getDisplayMedia. Safari is
+ *    excluded: opening a window moves focus off the page and WebKit then drops
+ *    the transient user activation, so getDisplayMedia is rejected — Safari uses
+ *    the floating overlay instead (see BrowserOS.recommendedPipStrategy).
  *
  * 3. floating  — Universal fallback
  *    Injects a fixed-position draggable overlay inside the main document.

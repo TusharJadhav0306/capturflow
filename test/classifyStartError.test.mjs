@@ -24,6 +24,11 @@ test('AbortError → ABORTED', () => {
     assert.equal(classifyStartError(ex('AbortError')).code, 'ABORTED');
 });
 
+test('InvalidStateError / InvalidAccessError → NO_USER_GESTURE (lost activation)', () => {
+    assert.equal(classifyStartError(ex('InvalidStateError')).code, 'NO_USER_GESTURE');
+    assert.equal(classifyStartError(ex('InvalidAccessError')).code, 'NO_USER_GESTURE');
+});
+
 test('Popup blocked message → POPUP_BLOCKED (regardless of name)', () => {
     assert.equal(classifyStartError(new Error('Popup blocked')).code, 'POPUP_BLOCKED');
 });

@@ -26,7 +26,7 @@ Legend: ✅ works · ⚠️ works with a caveat · ❌ not supported by the plat
 | 3 | Windows | Opera | ✅ | `document-pip` | WebM | Same as Chrome. |
 | 4 | macOS | Chrome / Edge | ✅ | `document-pip` | WebM | Same as #1. |
 | 5 | macOS | Firefox | ✅ | `popup` | WebM | Popup opens **before** the picker (sync). Verify it isn't blocked. |
-| 6 | macOS | Safari | ⚠️ **screen-only** | `popup` | **MP4** | No per-window/tab share; `hideBrowserChrome` has no effect. Confirm MP4 plays & seeks. |
+| 6 | macOS | Safari | ⚠️ **screen-only** | `floating` | **MP4** | NOT popup (popup steals focus → getDisplayMedia denied on WebKit). No per-window/tab share; `hideBrowserChrome` has no effect. Confirm MP4 plays & seeks. |
 | 7 | macOS | Opera | ✅ | `popup` | WebM | Mac Opera uses popup. |
 | 8 | Linux | Chrome | ✅ | `document-pip` | WebM | Same as #1 (Wayland may restrict window capture). |
 | 9 | Linux | Firefox | ✅ | `floating` | WebM | Same as #2. |

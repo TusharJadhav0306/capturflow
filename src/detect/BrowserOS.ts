@@ -61,15 +61,19 @@ export function detect(): BrowserEnv {
 
     // ── PiP strategy ─────────────────────────────────────────────
     //
-    // Key insight from production use:
-    //   - Mac + Firefox/Opera/Safari: window.open() popup MUST be called
-    //     synchronously before getDisplayMedia, because the async permission
-    //     dialog consumes the transient user activation needed for popups.
+    // Cross-browser PiP strategy:
+    //   - Mac + Firefox/Opera: open a window.open() popup synchronously BEFORE
+    //     getDisplayMedia (these engines tolerate the popup-then-capture order).
+    //   - Mac + Safari: must NOT open any window before getDisplayMedia. WebKit
+    //     drops the page's transient user activation the moment focus moves to
+    //     the new window, so getDisplayMedia is then rejected (surfaces as
+    //     NotAllowedError/InvalidStateError). Safari therefore uses the in-page
+    //     floating overlay, which is created AFTER capture starts.
     //   - Chrome/Edge (any OS): Document PiP opens AFTER getDisplayMedia
     //     resolves — the "Share" click grants a fresh activation.
     //   - Everything else: in-page floating overlay.
     //
-    const needsPopup = isMac && (isFirefox || isOpera || isSafari);
+    const needsPopup = isMac && (isFirefox || isOpera);
     const recommendedPipStrategy: PipStrategy =
         needsPopup           ? 'popup'
         : documentPipSupported ? 'document-pip'

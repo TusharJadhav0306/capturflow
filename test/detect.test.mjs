@@ -77,12 +77,13 @@ test('Firefox on macOS → popup (activation workaround)', () => {
     assert.equal(e.recommendedPipStrategy, 'popup');
 });
 
-test('Safari on macOS → safari/mac, popup, MP4 (no webm support)', () => {
+test('Safari on macOS → safari/mac, FLOATING (popup steals focus → breaks getDisplayMedia), MP4', () => {
     setEnv({ ua: UA.safariMac, platform: 'MacIntel', docPip: false, mimes: MP4 });
     const e = detect();
     assert.equal(e.browser, 'safari');
     assert.equal(e.os, 'mac');
-    assert.equal(e.recommendedPipStrategy, 'popup');
+    // NOT 'popup': opening a window before getDisplayMedia loses the user gesture on WebKit.
+    assert.equal(e.recommendedPipStrategy, 'floating');
     assert.ok(e.mimeType.startsWith('video/mp4'), `expected mp4, got ${e.mimeType}`);
 });
 

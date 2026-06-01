@@ -11,6 +11,7 @@ export type OutputFormat = 'webm' | 'mp4' | 'auto';
 /** Classified reason a start() attempt failed (carried in the 'error' event `code`). */
 export type StartErrorCode =
     | 'PERMISSION_DENIED'          // user denied the screen/camera/mic prompt (NotAllowedError)
+    | 'NO_USER_GESTURE'            // no live user activation — call start() from a click; not after a popup steals focus (InvalidStateError/InvalidAccessError)
     | 'NO_SOURCE'                  // no capturable source available (NotFoundError)
     | 'DEVICE_IN_USE'              // device busy / unreadable (NotReadableError)
     | 'ABORTED'                    // the request was aborted (AbortError)

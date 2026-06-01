@@ -1,6 +1,6 @@
 {
   "name": "capturflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Cross-browser screen + webcam recording with Document PiP overlay, custom UI, pause/resume, and chunked upload",
   "keywords": [
     "screen-recording",

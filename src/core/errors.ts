@@ -23,10 +23,14 @@ export function classifyStartError(err: unknown): ClassifiedError {
     }
 
     switch (name) {
-        case 'NotAllowedError':  return { code: 'PERMISSION_DENIED', recoverable: true, message };
-        case 'NotFoundError':    return { code: 'NO_SOURCE',         recoverable: true, message };
-        case 'NotReadableError': return { code: 'DEVICE_IN_USE',     recoverable: true, message };
-        case 'AbortError':       return { code: 'ABORTED',           recoverable: true, message };
-        default:                 return { code: 'START_FAILED',      recoverable: true, message };
+        case 'NotAllowedError':    return { code: 'PERMISSION_DENIED', recoverable: true, message };
+        // No live user activation — e.g. start() not called from a gesture, or a
+        // popup stole focus before getDisplayMedia (Safari/WebKit is strict here).
+        case 'InvalidStateError':
+        case 'InvalidAccessError': return { code: 'NO_USER_GESTURE',   recoverable: true, message };
+        case 'NotFoundError':      return { code: 'NO_SOURCE',         recoverable: true, message };
+        case 'NotReadableError':   return { code: 'DEVICE_IN_USE',     recoverable: true, message };
+        case 'AbortError':         return { code: 'ABORTED',           recoverable: true, message };
+        default:                   return { code: 'START_FAILED',      recoverable: true, message };
     }
 }

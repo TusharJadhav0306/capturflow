@@ -259,7 +259,8 @@ CapturFlow never throws from `start()`/`stop()` — it emits an `error` event wi
 | `PERMISSION_DENIED` | User dismissed the share/camera/mic prompt. | Show "allow access to record"; `start()` again is allowed. |
 | `NO_SOURCE` | No capturable source / device found. | Ask the user to connect a device / pick a source. |
 | `DEVICE_IN_USE` | Camera/mic busy in another app. | Ask to close the other app, retry. |
-| `POPUP_BLOCKED` | The popup-strategy overlay (Mac Firefox/Opera/Safari) was blocked. | Tell the user to allow popups for your site. |
+| `NO_USER_GESTURE` | No live user activation — `start()` wasn't called straight from a click, or a popup stole focus first (Safari is strict). | Call `start()` directly in the click handler; on Safari use `pip.strategy:'floating'`. |
+| `POPUP_BLOCKED` | The popup-strategy overlay (Mac Firefox/Opera) was blocked. | Tell the user to allow popups for your site. |
 | `ABORTED` | The request was aborted. | Retry. |
 | `START_FAILED` | Anything else. | Show `message`; retry. |
 | `UPLOAD_FAILED` | A chunk upload failed after retries (recording is safe — you got `stopped`). | Re-upload the blob from the `stopped` event. |
@@ -273,10 +274,10 @@ All are recoverable: the instance returns to `error` state and `start()` can be 
 | Chrome/Edge/Opera — Win/Linux/Mac | window + monitor | Document PiP (after picker) | WebM |
 | Firefox — Win/Linux | window + monitor | floating (in-page) | WebM |
 | Firefox — Mac | window + monitor | popup (before picker) | WebM |
-| Safari — Mac | **screen only** | popup | **MP4** |
+| Safari — Mac | **screen only** | floating | **MP4** |
 | iOS Safari / Android Chrome | **unsupported** | — | — |
 
-Takeaways: **Safari** records MP4 (not WebM) and can't share a single window/tab; the **floating** overlay (Firefox/older) is in-page so it's hidden while another tab is focused; **mobile** has no screen capture. `hideBrowserChrome` applies only when the page's own window is shared (skipped for monitor/tab/Safari). Full per-platform checklist: [TESTING.md](./TESTING.md).
+Takeaways: **Safari** records MP4 (not WebM), can't share a single window/tab, and uses the in-page **floating** overlay (a popup would steal focus and break `getDisplayMedia` on WebKit); the floating overlay is in-page so it's hidden while another tab/app is focused; **mobile** has no screen capture. `hideBrowserChrome` applies only when the page's own window is shared (skipped for monitor/tab/Safari). Full per-platform checklist: [TESTING.md](./TESTING.md).
 
 ## 7. Upload endpoint
 
@@ -323,7 +324,8 @@ Notes: do **not** set a `Content-Type` header in `upload.headers` (it would brea
 | Mobile shows no record option | `getDisplayMedia` is unsupported on iOS/Android web — `checkSupport().screen` is `false`. Offer webcam-only or a native path. |
 | Overlay disappears when switching tabs (Firefox/older) | The `floating` strategy is an in-page element; it's hidden when its tab is backgrounded. Document PiP (Chromium) and popup stay on top. |
 | Tab strip / URL bar visible in the recording | Set `capture.hideBrowserChrome: true`, and share the **window running the app**. |
-| Popup overlay blocked on Mac Firefox/Safari | `POPUP_BLOCKED` — allow popups for your origin. |
+| Popup overlay blocked on Mac Firefox/Opera | `POPUP_BLOCKED` — allow popups for your origin. |
+| `getDisplayMedia` denied / `NO_USER_GESTURE` on Safari | A window opened before capture and stole focus. Use `pip.strategy:'floating'` on Safari (the default since v0.1.1). Call `start()` directly from the click. |
 
 ## 9. Known limitations & roadmap
 
