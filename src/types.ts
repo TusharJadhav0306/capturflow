@@ -19,6 +19,11 @@ export type StartErrorCode =
     | 'SCREEN_CAPTURE_UNSUPPORTED' // getDisplayMedia unavailable (mobile/insecure)
     | 'START_FAILED';              // anything else
 
+/** Non-fatal warning codes — recording continues (e.g. screen-only). */
+export type WarningCode =
+    | 'WEBCAM_UNAVAILABLE'  // camera blocked/denied — recording continues without the webcam
+    | 'MIC_UNAVAILABLE';    // microphone blocked/denied — recording continues without audio
+
 /** Detected environment */
 export interface BrowserEnv {
     browser: 'chrome' | 'firefox' | 'safari' | 'edge' | 'opera' | 'unknown';
@@ -254,5 +259,7 @@ export interface CapturFlowEvents {
     'pip-open': (info: { strategy: PipStrategy }) => void;
     'pip-close': () => void;
     'error': (err: { message: string; code: string; recoverable: boolean }) => void;
+    /** Non-fatal: a requested input was unavailable but recording continues. */
+    'warning': (warn: { message: string; code: WarningCode }) => void;
     'chunk': (chunk: Blob, index: number) => void;
 }

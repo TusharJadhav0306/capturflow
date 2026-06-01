@@ -267,6 +267,17 @@ CapturFlow never throws from `start()`/`stop()` — it emits an `error` event wi
 
 All are recoverable: the instance returns to `error` state and `start()` can be called again.
 
+**Non-fatal `warning` event** — if the **camera or microphone is denied/unavailable**, CapturFlow no longer aborts; it records the **screen only** and emits a `warning` instead (recording still completes and `stopped` fires):
+
+| `warning.code` | Meaning | What to do |
+| --- | --- | --- |
+| `WEBCAM_UNAVAILABLE` | Camera blocked/denied — recording continues without the webcam overlay. | Optionally prompt the user to allow the camera, then offer to re-record. |
+| `MIC_UNAVAILABLE` | Microphone blocked/denied — recording continues without audio. | Optionally prompt to allow the mic. |
+
+```js
+recorder.on('warning', ({ code, message }) => console.warn(code, message)); // recording is still happening
+```
+
 ## 6. Cross-browser / OS behavior
 
 | Browser / OS | Screen capture | Overlay (auto) | Output |
@@ -326,6 +337,7 @@ Notes: do **not** set a `Content-Type` header in `upload.headers` (it would brea
 | Tab strip / URL bar visible in the recording | Set `capture.hideBrowserChrome: true`, and share the **window running the app**. |
 | Popup overlay blocked on Mac Firefox/Opera | `POPUP_BLOCKED` — allow popups for your origin. |
 | `getDisplayMedia` denied / `NO_USER_GESTURE` on Safari | A window opened before capture and stole focus. Use `pip.strategy:'floating'` on Safari (the default since v0.1.1). Call `start()` directly from the click. |
+| **Safari records the screen but no webcam/mic** (`WEBCAM_UNAVAILABLE`/`MIC_UNAVAILABLE`, or `PERMISSION_DENIED` pre-0.1.3) | Safari **camera/microphone are per-site permissions** and Safari does **not** re-prompt after a deny. Fix in **Safari → Settings → Websites → Camera** (and **Microphone**) → set the site to **Allow**, then reload. Note: Safari is a built-in app, so it does **not** appear under macOS System Settings → Privacy & Security → Camera (that list is only for Chrome/Firefox/etc.). Since v0.1.3 a denied camera/mic no longer aborts — you get a `warning` and a screen-only recording. |
 
 ## 9. Known limitations & roadmap
 

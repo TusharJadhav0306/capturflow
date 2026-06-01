@@ -116,15 +116,27 @@ export class CapturFlow {
                 await this.pip.openDocumentPip();
             }
 
-            // ── Step 2: Webcam ──
+            // ── Step 2: Webcam (NON-FATAL) ──
+            // If the camera is blocked/denied (e.g. Safari per-site permission),
+            // keep recording the screen instead of throwing the whole session
+            // away. Emit a 'warning' so the consumer can react.
             let webcamStream: MediaStream | null = null;
             if (captureConfig.webcam !== false) {
-                webcamStream = await this.streams.acquireWebcam();
+                try {
+                    webcamStream = await this.streams.acquireWebcam();
+                } catch (err: any) {
+                    webcamStream = null;
+                    this.emit('warning', { code: 'WEBCAM_UNAVAILABLE', message: classifyStartError(err).message });
+                }
             }
 
-            // ── Step 3: Microphone ──
+            // ── Step 3: Microphone (NON-FATAL — continue without audio) ──
             if (captureConfig.audio !== false) {
-                await this.streams.acquireMic();
+                try {
+                    await this.streams.acquireMic();
+                } catch (err: any) {
+                    this.emit('warning', { code: 'MIC_UNAVAILABLE', message: classifyStartError(err).message });
+                }
             }
 
             // ── Step 4: Compositor ──

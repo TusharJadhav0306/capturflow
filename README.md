@@ -177,7 +177,8 @@ recorder.on('stopped', ({ blob, url, durationMs, mimeType }) => { /* ... */ });
 | `upload-progress` | `(percent, uploadedBytes, totalBytes)` | Upload progresses. |
 | `uploaded` | `({ response, durationMs })` | Upload completed. |
 | `pip-open` / `pip-close` | `({ strategy })` / `()` | Overlay opened / closed. |
-| `error` | `({ message, code, recoverable })` | Error. Codes: `SCREEN_CAPTURE_UNSUPPORTED`, `PERMISSION_DENIED`, `NO_SOURCE`, `DEVICE_IN_USE`, `POPUP_BLOCKED`, `ABORTED`, `START_FAILED`, `UPLOAD_FAILED`. See the [error table in GUIDE.md](./GUIDE.md#5-error-handling). |
+| `error` | `({ message, code, recoverable })` | Error. Codes: `SCREEN_CAPTURE_UNSUPPORTED`, `PERMISSION_DENIED`, `NO_USER_GESTURE`, `NO_SOURCE`, `DEVICE_IN_USE`, `POPUP_BLOCKED`, `ABORTED`, `START_FAILED`, `UPLOAD_FAILED`. See the [error table in GUIDE.md](./GUIDE.md#5-error-handling). |
+| `warning` | `({ message, code })` | **Non-fatal** — a requested input was unavailable but recording continues. Codes: `WEBCAM_UNAVAILABLE`, `MIC_UNAVAILABLE` (e.g. camera/mic denied → records screen-only). |
 
 ## Cross-browser support
 
