@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CapturFlow — capability diagnostics</title>
+    <style>
+        :root { color-scheme: dark; }
+        body { margin:0; min-height:100vh; font:14px/1.5 system-ui,sans-serif;
+            background:radial-gradient(1000px 500px at 50% -10%,#102a1e,#060b13 60%); color:#e2e8f0; padding:32px 16px; }
+        .wrap { max-width:760px; margin:0 auto; }
+        h1 { font-size:20px; margin:0 0 4px; }
+        .sub { color:#94a3b8; margin:0 0 20px; font-size:13px; }
+        .card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:16px 18px; margin-bottom:14px; }
+        .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#94a3b8; margin:0 0 12px; }
+        table { width:100%; border-collapse:collapse; font-size:13px; }
+        td { padding:5px 8px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:top; }
+        td:first-child { color:#94a3b8; width:48%; }
+        .ok   { color:#34d399; font-weight:600; }
+        .bad  { color:#f87171; font-weight:600; }
+        .warn { color:#fbbf24; font-weight:600; }
+        code { background:#020617; padding:1px 6px; border-radius:5px; font-size:12px; }
+        .verdict { font-size:15px; font-weight:700; padding:12px 16px; border-radius:10px; margin-bottom:14px; }
+        .verdict.go   { background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.4); }
+        .verdict.nogo { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.4); }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>CapturFlow — capability diagnostics</h1>
+        <p class="sub">Open this on each browser/OS to confirm what CapturFlow can do. No recording is started.</p>
+        <div id="verdict" class="verdict"></div>
+        <div class="card"><h2>Detected environment — CapturFlow.detect()</h2><table id="env"></table></div>
+        <div class="card"><h2>Capabilities</h2><table id="caps"></table></div>
+        <div class="card"><h2>MediaRecorder.isTypeSupported</h2><table id="mimes"></table></div>
+        <div class="card"><h2>Window metrics (hideBrowserChrome auto-estimate)</h2><table id="metrics"></table></div>
+    </div>
+
+    <script type="module">
+        import { CapturFlow } from '../dist/index.esm.js';
+
+        const row = (k, v, cls = '') => `<tr><td>${k}</td><td class="${cls}">${v}</td></tr>`;
+        const yn = (b) => b ? '<span class="ok">yes</span>' : '<span class="bad">no</span>';
+
+        // ── env ──
+        const env = CapturFlow.detect();
+        document.getElementById('env').innerHTML =
+            Object.entries(env).map(([k, v]) =>
+                row(k, typeof v === 'boolean' ? yn(v) : `<code>${v}</code>`)
+            ).join('');
+
+        // ── capabilities ──
+        const md = navigator.mediaDevices;
+        const caps = {
+            'Secure context (https/localhost)': !!window.isSecureContext,
+            'getDisplayMedia': typeof md?.getDisplayMedia === 'function',
+            'getUserMedia': typeof md?.getUserMedia === 'function',
+            'MediaRecorder': typeof MediaRecorder !== 'undefined',
+            'Document PiP (documentPictureInPicture)': 'documentPictureInPicture' in window,
+            'Canvas captureStream': typeof document.createElement('canvas').captureStream === 'function',
+            'navigator.userAgentData': !!navigator.userAgentData,
+        };
+        document.getElementById('caps').innerHTML =
+            Object.entries(caps).map(([k, v]) => row(k, yn(v))).join('');
+
+        // ── mime support ──
+        const candidates = [
+            'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus',
+            'video/webm;codecs=h264,opus', 'video/webm',
+            'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4',
+        ];
+        const supports = (t) => typeof MediaRecorder !== 'undefined'
+            && MediaRecorder.isTypeSupported?.(t);
+        document.getElementById('mimes').innerHTML =
+            candidates.map(t => row(`<code>${t}</code>`, yn(supports(t)))).join('') +
+            row('<b>Recorder will use</b>', `<code>${env.mimeType}</code>`, 'ok');
+
+        // ── window metrics ──
+        const chromeCss = Math.max(0, window.outerHeight - window.innerHeight);
+        document.getElementById('metrics').innerHTML =
+            row('window.outerHeight', window.outerHeight + ' px') +
+            row('window.innerHeight', window.innerHeight + ' px') +
+            row('devicePixelRatio', window.devicePixelRatio) +
+            row('Estimated chrome height (auto crop)', chromeCss + ' CSS px',
+                chromeCss > 0 ? 'ok' : 'warn');
+
+        // ── verdict ──
+        const v = document.getElementById('verdict');
+        if (!env.screenCaptureSupported) {
+            v.className = 'verdict nogo';
+            v.innerHTML = env.isMobile
+                ? '⛔ Mobile browser — screen capture is unavailable on the web here. CapturFlow start() will report SCREEN_CAPTURE_UNSUPPORTED.'
+                : '⛔ getDisplayMedia not available (insecure context, or unsupported browser).';
+        } else if (!window.isSecureContext) {
+            v.className = 'verdict nogo';
+            v.innerHTML = '⛔ Not a secure context — serve over https or localhost.';
+        } else {
+            v.className = 'verdict go';
+            v.innerHTML = `✅ Ready to record. PiP strategy: <code>${env.recommendedPipStrategy}</code> · output: <code>${env.mimeType}</code>`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CapturFlow — global &lt;script&gt; (CDN-style) usage</title>
+    <style>
+        :root { color-scheme: dark; }
+        body { margin:0; min-height:100vh; font:14px/1.5 system-ui,sans-serif; color:#e2e8f0;
+            background:radial-gradient(1000px 500px at 50% -10%,#102a1e,#060b13 60%); padding:40px 20px; }
+        .wrap { max-width:640px; margin:0 auto; }
+        h1 { font-size:20px; } .sub { color:#94a3b8; font-size:13px; margin-top:-8px; }
+        button { border:0; border-radius:10px; padding:10px 18px; font-weight:600; color:#fff; background:#059669; cursor:pointer; margin:14px 8px 14px 0; }
+        button.stop { background:#dc2626; } button:disabled { opacity:.4; cursor:not-allowed; }
+        video { width:100%; border-radius:10px; background:#000; margin-top:12px; }
+        code { background:#020617; padding:1px 6px; border-radius:5px; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>Global &lt;script&gt; usage</h1>
+        <p class="sub">Loads the self-contained global build and uses <code>window.CapturFlow</code> — exactly how a CDN <code>&lt;script src&gt;</code> tag works. (Here it loads the local <code>../dist/index.global.js</code>; on a CDN you'd use <code>https://cdn.jsdelivr.net/npm/capturflow</code>.)</p>
+
+        <button id="start">▶ Record</button>
+        <button id="stop" class="stop" disabled>■ Stop</button>
+        <video id="out" controls style="display:none"></video>
+    </div>
+
+    <!-- Local stand-in for: <script src="https://cdn.jsdelivr.net/npm/capturflow"></script> -->
+    <script src="../dist/index.global.js"></script>
+    <script>
+        // The global namespace holds the class + helpers.
+        var CapturFlow = window.CapturFlow.CapturFlow;
+        var checkSupport = window.CapturFlow.checkSupport;
+
+        var rec = new CapturFlow({ capture: { displaySurface: 'window', hideBrowserChrome: true } });
+        var startBtn = document.getElementById('start');
+        var stopBtn = document.getElementById('stop');
+        var out = document.getElementById('out');
+
+        rec.on('status-change', function (s) {
+            var active = s === 'recording' || s === 'paused';
+            startBtn.disabled = active;
+            stopBtn.disabled = !active;
+        });
+        rec.on('stopped', function (r) { out.style.display = ''; out.src = r.url; });
+        rec.on('error', function (e) { alert(e.code + ': ' + e.message); });
+
+        var support = checkSupport();
+        if (!support.supported) { startBtn.disabled = true; startBtn.title = support.reasons.join(' '); }
+
+        startBtn.onclick = function () { rec.start(); };
+        stopBtn.onclick = function () { rec.stop(); };
+    </script>
+</body>
+</html>

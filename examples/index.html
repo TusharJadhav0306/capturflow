@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CapturFlow — local test harness</title>
+    <style>
+        :root { color-scheme: dark; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; font: 14px/1.5 system-ui, sans-serif;
+            background: radial-gradient(1200px 600px at 50% -10%, #102a1e, #060b13 60%);
+            color: #e2e8f0; display: flex; flex-direction: column; align-items: center;
+            padding: 40px 20px;
+        }
+        h1 { font-size: 20px; margin: 0 0 4px; }
+        .sub { color: #94a3b8; margin: 0 0 24px; font-size: 13px; }
+        .card {
+            width: 100%; max-width: 720px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; margin-bottom: 16px;
+        }
+        .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: #94a3b8; margin: 0 0 12px; }
+        .row { display: flex; gap: 10px; flex-wrap: wrap; }
+        button {
+            appearance: none; border: 0; border-radius: 10px; padding: 10px 18px; font-size: 14px;
+            font-weight: 600; cursor: pointer; color: #fff; transition: filter .15s, opacity .15s;
+        }
+        button:disabled { opacity: .4; cursor: not-allowed; }
+        button:not(:disabled):hover { filter: brightness(1.1); }
+        .b-start  { background: linear-gradient(135deg,#059669,#047857); }
+        .b-pause  { background: #475569; }
+        .b-resume { background: #2563eb; }
+        .b-stop   { background: #dc2626; }
+        .pill {
+            display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px;
+            font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.06);
+        }
+        .dot { width: 8px; height: 8px; border-radius: 9999px; background: #64748b; }
+        .dot.recording { background: #ef4444; animation: pulse 1s infinite; }
+        .dot.paused { background: #f59e0b; }
+        .dot.completed { background: #10b981; }
+        @keyframes pulse { 50% { opacity: .3; } }
+        pre {
+            background: #020617; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
+            padding: 12px; font-size: 12px; overflow: auto; margin: 0; max-height: 200px;
+        }
+        .env-grid { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 13px; }
+        .env-grid b { color: #94a3b8; font-weight: 500; }
+        video { width: 100%; border-radius: 10px; background: #000; margin-top: 8px; }
+        #log div { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        #log .t { color: #34d399; font-weight: 600; }
+        #log .err { color: #f87171; }
+    </style>
+</head>
+<body>
+    <h1>CapturFlow — local test harness</h1>
+    <p class="sub">Imports <code>../dist/index.esm.js</code> directly. Serve over http://localhost to test.</p>
+
+    <div class="card">
+        <h2>Detected environment</h2>
+        <div id="env" class="env-grid">loading…</div>
+    </div>
+
+    <div class="card">
+        <h2>Controls — status: <span id="status" class="pill"><span id="dot" class="dot"></span><span id="statusText">idle</span></span></h2>
+        <div class="row">
+            <button id="start"  class="b-start">▶ Start</button>
+            <button id="pause"  class="b-pause"  disabled>⏸ Pause</button>
+            <button id="resume" class="b-resume" disabled>▶ Resume</button>
+            <button id="stop"   class="b-stop"   disabled>■ Stop</button>
+        </div>
+    </div>
+
+    <div class="card" id="playbackCard" style="display:none">
+        <h2>Recording playback</h2>
+        <video id="playback" controls></video>
+    </div>
+
+    <div class="card">
+        <h2>Event log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script type="module">
+        import { CapturFlow } from '../dist/index.esm.js';
+
+        const $ = (id) => document.getElementById(id);
+        const log = (msg, cls = '') => {
+            const d = document.createElement('div');
+            const time = new Date().toLocaleTimeString();
+            d.innerHTML = `<span class="t">${time}</span> <span class="${cls}">${msg}</span>`;
+            $('log').prepend(d);
+        };
+
+        // ── env ──────────────────────────────────────────────
+        const env = CapturFlow.detect();
+        $('env').innerHTML = Object.entries(env)
+            .map(([k, v]) => `<b>${k}</b><span>${v}</span>`).join('');
+
+        // ── instance ─────────────────────────────────────────
+        const cf = new CapturFlow({
+            capture: { displaySurface: 'window', hideBrowserChrome: true },
+            pip: {
+                strategy: 'auto',
+                title: 'CapturFlow Test',
+                metadata: { name: 'Test Patient', caseId: '123' },
+            },
+            output: { frameRate: 30, fixDuration: true },
+            // upload: { url: 'http://localhost:8000/upload' }, // enable to test chunked upload
+        });
+
+        // ── ui sync ──────────────────────────────────────────
+        const setUI = (s) => {
+            $('statusText').textContent = s;
+            $('dot').className = 'dot ' + (['recording','paused','completed'].includes(s) ? s : '');
+            $('start').disabled  = !(s === 'idle' || s === 'completed' || s === 'error');
+            $('pause').disabled  = s !== 'recording';
+            $('resume').disabled = s !== 'paused';
+            $('stop').disabled   = !(s === 'recording' || s === 'paused');
+        };
+
+        cf.on('status-change', setUI);
+        cf.on('started',  (i) => log(`started — pip:${i.pipStrategy}, mime:${i.mimeType}`));
+        cf.on('pip-open', (i) => log(`pip-open — strategy:${i.strategy}`));
+        cf.on('pip-close',()  => log('pip-close'));
+        cf.on('paused',   ()  => log('paused'));
+        cf.on('resumed',  ()  => log('resumed'));
+        cf.on('chunk',    (_b, idx) => log(`chunk #${idx}`));
+        cf.on('error',    (e) => log(`ERROR [${e.code}]: ${e.message}`, 'err'));
+        cf.on('stopped',  (r) => {
+            log(`stopped — ${(r.blob.size/1024/1024).toFixed(2)}MB, ${(r.durationMs/1000).toFixed(1)}s`);
+            $('playbackCard').style.display = '';
+            $('playback').src = r.url;
+        });
+
+        // ── buttons ──────────────────────────────────────────
+        $('start').onclick  = () => cf.start();
+        $('pause').onclick  = () => cf.pause();
+        $('resume').onclick = () => cf.resume();
+        $('stop').onclick   = () => cf.stop();
+
+        setUI('idle');
+        log('harness ready');
+    </script>
+</body>
+</html>

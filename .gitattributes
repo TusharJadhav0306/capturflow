@@ -1,0 +1,6 @@
+# Normalize line endings to LF in the repo (avoids CRLF churn across OSes)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webm binary
+*.mp4 binary

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CapturFlow — headless custom UI</title>
+    <style>
+        :root { color-scheme: dark; }
+        body { margin:0; min-height:100vh; font:14px/1.5 system-ui,sans-serif; color:#e2e8f0;
+            background:radial-gradient(1000px 500px at 50% -10%,#102a1e,#060b13 60%); padding:40px 20px; }
+        .wrap { max-width:640px; margin:0 auto; }
+        h1 { font-size:20px; } .sub { color:#94a3b8; font-size:13px; margin-top:-8px; }
+        .bar { display:flex; gap:8px; flex-wrap:wrap; margin:16px 0; }
+        button { border:0; border-radius:10px; padding:10px 16px; font-weight:600; color:#fff; cursor:pointer; }
+        button:disabled { opacity:.4; cursor:not-allowed; }
+        .rec{background:#059669}.pause{background:#475569}.stop{background:#dc2626}.mic{background:#334155}.cam{background:#334155}
+        .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:9999px;background:rgba(255,255,255,.06);font-weight:600}
+        .dot{width:8px;height:8px;border-radius:9999px;background:#64748b}
+        .dot.recording{background:#ef4444}.dot.paused{background:#f59e0b}.dot.completed{background:#10b981}
+        video{width:100%;border-radius:10px;background:#000;margin-top:12px}
+        #cam{width:160px;height:120px;object-fit:cover;transform:scaleX(-1);border-radius:10px;background:#000}
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>Headless custom UI</h1>
+        <p class="sub">No built-in widget (<code>pip.enabled:false</code>). Your own buttons drive the instance API; events drive the UI.</p>
+
+        <p>Status: <span class="pill"><span id="dot" class="dot"></span><span id="status">idle</span></span> · <span id="time">0:00</span></p>
+        <video id="cam" autoplay muted playsinline></video>
+
+        <div class="bar">
+            <button id="rec" class="rec">▶ Record</button>
+            <button id="pause" class="pause" disabled>⏸ Pause</button>
+            <button id="resume" class="pause" disabled>▶ Resume</button>
+            <button id="mic" class="mic" disabled>🎤 Mute</button>
+            <button id="cam-btn" class="cam" disabled>📷 Hide</button>
+            <button id="stop" class="stop" disabled>■ Stop</button>
+        </div>
+
+        <video id="out" controls style="display:none"></video>
+    </div>
+
+    <script type="module">
+        import { CapturFlow } from '../dist/index.esm.js';
+        const $ = (id) => document.getElementById(id);
+
+        const rec = new CapturFlow({
+            capture: { displaySurface: 'window', hideBrowserChrome: true },
+            pip: { enabled: false },                 // ← headless: no built-in overlay
+        });
+
+        // Drive your own camera preview by grabbing the webcam stream on start.
+        // (In headless mode you own all UI; here we mirror it for demonstration.)
+        rec.on('status-change', (s) => {
+            $('status').textContent = s;
+            $('dot').className = 'dot ' + (['recording','paused','completed'].includes(s) ? s : '');
+            const active = s === 'recording' || s === 'paused';
+            $('rec').disabled = active;
+            $('pause').disabled = s !== 'recording';
+            $('resume').disabled = s !== 'paused';
+            $('stop').disabled = !active;
+            $('mic').disabled = !active;
+            $('cam-btn').disabled = !active;
+        });
+        rec.on('stopped', ({ url }) => { $('out').style.display = ''; $('out').src = url; });
+        rec.on('error', ({ code, message }) => alert(`${code}: ${message}`));
+
+        const support = CapturFlow.checkSupport();
+        if (!support.supported) { $('rec').disabled = true; $('rec').title = support.reasons.join(' '); }
+
+        $('rec').onclick    = () => rec.start();     // called from the click — keeps user activation
+        $('pause').onclick  = () => rec.pause();
+        $('resume').onclick = () => rec.resume();
+        $('stop').onclick   = () => rec.stop();
+        $('mic').onclick    = () => { rec.toggleMic(); $('mic').textContent = $('mic').textContent.includes('Mute') ? '🎤 Unmute' : '🎤 Mute'; };
+        $('cam-btn').onclick= () => { rec.toggleCam(); $('cam-btn').textContent = $('cam-btn').textContent.includes('Hide') ? '📷 Show' : '📷 Hide'; };
+
+        // elapsed timer
+        setInterval(() => {
+            const ms = rec.elapsedMs, s = Math.floor(ms/1000);
+            $('time').textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+        }, 250);
+    </script>
+</body>
+</html>

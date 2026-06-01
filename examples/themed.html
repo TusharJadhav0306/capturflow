@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CapturFlow — themed built-in widget</title>
+    <style>
+        :root { color-scheme: dark; }
+        body { margin:0; min-height:100vh; font:14px/1.5 system-ui,sans-serif; color:#e2e8f0;
+            background:radial-gradient(1000px 500px at 50% -10%,#102a1e,#060b13 60%); padding:40px 20px; }
+        .wrap { max-width:640px; margin:0 auto; }
+        h1 { font-size:20px; } .sub { color:#94a3b8; font-size:13px; margin-top:-8px; }
+        label { display:block; margin:10px 0 4px; font-size:12px; color:#94a3b8; }
+        input[type=color]{ width:48px; height:28px; border:0; background:none; vertical-align:middle; }
+        button#start { border:0; border-radius:10px; padding:10px 18px; font-weight:600; color:#fff; background:#059669; cursor:pointer; margin:16px 0; }
+        button#start:disabled { opacity:.4; cursor:not-allowed; }
+        video#out { width:100%; border-radius:10px; background:#000; margin-top:12px; }
+        .row{display:flex;gap:18px;flex-wrap:wrap}
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>Themed built-in widget</h1>
+        <p class="sub">Recolor + relabel the built-in widget via <code>pip.theme</code> / <code>pip.labels</code>. Pick colors, then start — the PiP overlay uses them. Omitting a key keeps the default look.</p>
+
+        <div class="row">
+            <div><label>Accent (Stop)</label><input type="color" id="accent" value="#7c3aed"></div>
+            <div><label>Background</label><input type="color" id="bg" value="#0b1120"></div>
+            <div><label>Text</label><input type="color" id="text" value="#e2e8f0"></div>
+        </div>
+        <label><input type="checkbox" id="relabel"> Relabel Stop → "End session"</label>
+
+        <button id="start">▶ Start recording</button>
+        <video id="out" controls style="display:none"></video>
+    </div>
+
+    <script type="module">
+        import { CapturFlow } from '../dist/index.esm.js';
+        const $ = (id) => document.getElementById(id);
+
+        $('start').onclick = () => {
+            // Build a fresh instance per run so theme changes apply (theme is read at start).
+            const rec = new CapturFlow({
+                capture: { displaySurface: 'window', hideBrowserChrome: true },
+                pip: {
+                    metadata: { name: 'Themed demo', caseId: '42' },
+                    theme: { accent: $('accent').value, background: $('bg').value, text: $('text').value },
+                    labels: $('relabel').checked ? { stop: 'End session' } : undefined,
+                },
+            });
+            rec.on('stopped', ({ url }) => { $('out').style.display = ''; $('out').src = url; });
+            rec.on('error', ({ code, message }) => alert(`${code}: ${message}`));
+            rec.start();
+        };
+
+        const support = CapturFlow.checkSupport();
+        $('start').disabled = !support.supported;
+        if (!support.supported) $('start').title = support.reasons.join(' ');
+    </script>
+</body>
+</html>
